@@ -21,8 +21,7 @@ app.get('/',(req,res)=>{
 
 app.use("/api/v1/use/auth",authRoutes)
 
-
-app.use("/api/v1/use/problem",problemRoutes)
+app.use("/api/v1/problems", problemRoutes);
 
 app.listen(port,()=>{
 console.log(`server is running on the ${port}`);

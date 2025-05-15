@@ -1,9 +1,11 @@
 import jwt from "jsonwebtoken";
-import {db} from "../libs/db.js"
+import {db} from "../libs/db.js";
 
-export const authMiddleware = async(req, res, next)=>{
+export const authMiddleware = async (req , res , next)=>{
     try {
-        const token = req.cookies.jwt;
+
+        console.log("auth middleware...!")
+        const token = req.cookies.jwt; 
 
         if(!token){
             return res.status(401).json({
@@ -46,12 +48,13 @@ export const authMiddleware = async(req, res, next)=>{
     }
 }
 
-export const checkAdmin = async(req,res,next)=>{
+export const checkAdmin = async(req, res, next)=>{
     try {
+        console.log("check admin...!")
         const userId = req.user.id;
         const user =await db.user.findUnique({
             where:{
-                id:user.id
+                id:userId
             },
             select:{
                 role:true
