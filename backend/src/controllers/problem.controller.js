@@ -4,7 +4,7 @@ import {getJudge0LanguageId,submitBatch,pollBatchResults} from  "../libs/judge0.
 
 
 export const createProblem = async (req, res) => {
-    console.log("create controller...!")
+    // console.log("create controller...!")
     // going to get the all the dara from te request body
     const { title,
         description,
@@ -23,11 +23,11 @@ export const createProblem = async (req, res) => {
         })
     }
         
-    console.log("Role admin...!")
+    // console.log("Role admin...!")
         try {
-            console.log("try catch...!")
+            // console.log("try catch...!")
             for (const [language, solutionCode] of Object.entries(referenceSolution)) {
-                console.log("Before");
+                // console.log("Before");
                 const languageId = getJudge0LanguageId(language);
                 console.log(languageId);
                 if (!languageId) {
@@ -41,28 +41,28 @@ export const createProblem = async (req, res) => {
                     stdin: input,
                     expected_output: output,
                 }))
-                console.log(submissions)
-                console.log("Entry in the Joudge")
+                // console.log(submissions)
+                // console.log("Entry in the Joudge")
                 // const sumbissionResults = await submitBatch(submissions)
 
                 const submissionResults = await submitBatch(submissions);
 
-                console.log(submissionResults)
+                // console.log(submissionResults)
 
                 // const tokens = sumbissionResults.map((res) => res.token);
                 const tokens = submissionResults.map((res) => res.token);
 
 
-                console.log(tokens)
+                // console.log(tokens)
 
                 // const results = await pollBatchResults(tokens);
                 const results = await pollBatchResults(tokens);
 
-                console.log(results)
+                // console.log(results)
 
                 for (let i = 0; i < results; i++) {
                     const result = results[i];
-                    console.log("Result----", result);
+                    // console.log("Result----", result);
 
                     if (result.status.id !== 3) {
                         return res.status(400).json({ error: `Testcase ${i + 1} failed for language ${language}` })
@@ -88,7 +88,10 @@ export const createProblem = async (req, res) => {
                 return res.status(201).json(newProblem);
             }
         } catch (error) {
-
+            console.log(error);
+            return res.status(500).json({
+                error:"Internal server error"
+            })
         }
     }
     // going to check the uer role once again
@@ -148,6 +151,110 @@ try {
 }
 
 export const updateProblem = async (req, res, next) => {
+
+    //get the problemID
+    // console.log("enter the problem update controller")
+    const  problemId = req.params.id;
+    // get the all filed in body
+    const { title,
+        description,
+        difficulty,
+        tags,
+        examples,
+        constraints,
+        testcases,
+        codeSnippet,
+        referenceSolution
+    } = req.body;
+
+    console.log(problemId);
+
+    //Check the role 
+    if(req.user.role !== 'ADMIN'){
+        return res.status(403).json({
+            error:"You are not allowed to update a problem"
+        })
+    }
+
+    try {
+
+        //Problem is exist or not
+      
+            const existingProblem =await db.problem.findUnique({
+                where:{
+                    id:problemId
+                },
+            });
+            console.log("problem is exist");
+            if(!existingProblem){
+                return res.status(404).json({
+                    error:"Problem not found"
+                });
+            }
+
+        // console.log("try catch...!")
+        for (const [language, solutionCode] of Object.entries(referenceSolution)) {
+            // console.log("Before");
+            const languageId = getJudge0LanguageId(language);
+            console.log(languageId);
+            if (!languageId) {
+                return res.status(400).json({
+                    error: "Languge ${language} is not supported"
+                })
+            }
+            const submissions = testcases.map(({ input, output }) => ({
+                source_code: solutionCode,
+                language_id: languageId,
+                stdin: input,
+                expected_output: output,
+            }))
+          
+            const submissionResults = await submitBatch(submissions);
+
+          
+            const tokens = submissionResults.map((res) => res.token);
+
+
+         
+            const results = await pollBatchResults(tokens);
+
+          
+            for (let i = 0; i < results; i++) {
+                const result = results[i];
+                // console.log("Result----", result);
+
+                if (result.status.id !== 3) {
+                    return res.status(400).json({ error: `Testcase ${i + 1} failed for language ${language}` })
+                }
+            }
+            // save the problem in the database
+
+
+            const updatedProblem = await db.problem.update({
+                where:{
+                    id:problemId
+                },
+                data: {
+                    title,
+                    description,
+                    difficulty,
+                    tags,
+                    examples,
+                    constraints,
+                    testcases,
+                    codeSnippet,
+                    referenceSolution,
+                    userId: req.user.id,
+                }
+            })
+            return res.status(201).json(updatedProblem);
+        }
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            error:"Internal server error"
+        });
+    }
 
 }
 
